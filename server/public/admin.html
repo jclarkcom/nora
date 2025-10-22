@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nora Admin - Family Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Nora Admin Panel</h1>
+            <p class="subtitle">Manage Family Members</p>
+        </header>
+
+        <div class="content">
+            <!-- Add/Edit Form -->
+            <div class="card form-card">
+                <h2 id="form-title">Add New Family Member</h2>
+                <form id="member-form" enctype="multipart/form-data">
+                    <input type="hidden" id="member-id">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Name *</label>
+                            <input type="text" id="name" required placeholder="Enter name">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="avatar">Emoji Avatar</label>
+                            <input type="text" id="avatar" placeholder="👤 (optional)">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="phone">Phone Number *</label>
+                            <input type="tel" id="phone" required placeholder="+1234567890">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="email@example.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="photo">Photo</label>
+                        <input type="file" id="photo" accept="image/*">
+                        <small>Max 5MB. Supported: JPG, PNG, GIF, WebP</small>
+                    </div>
+
+                    <div class="form-preview" id="photo-preview-container" style="display: none;">
+                        <img id="photo-preview" src="" alt="Photo preview">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submit-btn">
+                            Add Member
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancel-btn" style="display: none;">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Family Members List -->
+            <div class="card">
+                <h2>Current Family Members</h2>
+                <div id="members-list" class="members-grid">
+                    <!-- Members will be loaded here -->
+                </div>
+                <div id="loading" class="loading">Loading...</div>
+                <div id="error-message" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Cropping Modal -->
+    <div id="crop-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Crop Photo</h2>
+                <button class="modal-close" id="crop-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="crop-container">
+                    <img id="crop-image" src="" alt="Image to crop">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="crop-cancel">Cancel</button>
+                <button class="btn btn-primary" id="crop-apply">Apply Crop</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

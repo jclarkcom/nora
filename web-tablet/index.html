@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Nora Video Call</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Family Selection Screen -->
+        <div id="family-screen" class="screen active">
+            <div id="family-grid" class="family-grid">
+                <!-- Family members will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Calling Screen -->
+        <div id="calling-screen" class="screen">
+            <div class="calling-photo-container">
+                <img id="calling-photo" src="" alt="" class="calling-photo">
+                <div class="calling-avatar-fallback" id="calling-avatar">👨</div>
+            </div>
+            <div class="calling-overlay">
+                <div class="pulse-rings">
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring"></div>
+                </div>
+                <h2 class="calling-text">Calling <span id="calling-name">Mom</span>...</h2>
+                <button class="cancel-btn" id="cancel-call-btn">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Video Call Screen -->
+        <div id="video-screen" class="screen">
+            <video id="remote-video" class="remote-video" autoplay playsinline></video>
+            <video id="local-video" class="local-video" autoplay playsinline muted></video>
+            <div class="video-controls">
+                <button class="end-call-btn" id="end-call-btn">End Call</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

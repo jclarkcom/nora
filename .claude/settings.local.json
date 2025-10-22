@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npx react-native@latest init NativeTablet --skip-install)",
+      "Bash(npx @react-native-community/cli@latest init NativeTablet --directory native-tablet --skip-install --version 0.76.0)",
+      "Bash(npm install)",
+      "Bash(npm test)",
+      "Bash(curl:*)",
+      "Bash(npm start)",
+      "Bash(start http://localhost:4001)",
+      "Bash(start http://localhost:4000/admin/admin.html)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 72284)",
+      "Bash(taskkill //F //PID 72284)",
+      "Bash(npm install:*)",
+      "Bash(taskkill //F //PID 82476)",
+      "Bash(taskkill //F //PID 61320)",
+      "Bash(taskkill //F //PID 32792)",
+      "Bash(taskkill //F //PID 73720)",
+      "Bash(taskkill //F //PID 44320)",
+      "Bash(taskkill //F //PID 83036)",
+      "Bash(taskkill //F //PID 29240)",
+      "Bash(openssl version:*)",
+      "Bash(taskkill //F //PID 40948)",
+      "Bash(taskkill //F //PID 22592)",
+      "Read(//c/Users/jonat/Jonathan Clark Dropbox/Jonathan Clark/code/**)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

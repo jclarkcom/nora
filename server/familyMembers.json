@@ -1,0 +1,50 @@
+[
+  {
+    "id": "mom",
+    "name": "Mom",
+    "avatar": "👩",
+    "phone": "+1234567890",
+    "email": "mom@family.com",
+    "photoUrl": null
+  },
+  {
+    "id": "dad",
+    "name": "Dad",
+    "avatar": "👨",
+    "phone": "+1234567891",
+    "email": "dad@family.com",
+    "photoUrl": null
+  },
+  {
+    "id": "grandma",
+    "name": "Grandma",
+    "avatar": "👵",
+    "phone": "+1234567892",
+    "email": "grandma@family.com",
+    "photoUrl": null
+  },
+  {
+    "id": "grandpa",
+    "name": "Grandpa",
+    "avatar": "👴",
+    "phone": "+1234567893",
+    "email": "grandpa@family.com",
+    "photoUrl": null
+  },
+  {
+    "id": "samia-1761155154517",
+    "name": "Samia",
+    "avatar": "👤",
+    "phone": "+13868820178",
+    "email": "samia.rahmani@gmail.com",
+    "photoUrl": "/uploads/family-1761155154515-866431867.jpg"
+  },
+  {
+    "id": "jonathan-1761155965563",
+    "name": "Jonathan",
+    "avatar": "👤",
+    "phone": "+14158198919",
+    "email": "jc@jonathanclark.com",
+    "photoUrl": "/uploads/family-1761175172833-616917571.jpg"
+  }
+]

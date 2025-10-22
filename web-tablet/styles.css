@@ -1,0 +1,340 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    background: #f5f5f5;
+    width: 100vw;
+    height: 100vh;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+}
+
+.screen {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 100;
+}
+
+.screen.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Family Selection Screen */
+#family-screen {
+    padding: 0;
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+.title {
+    display: none;
+}
+
+.family-grid {
+    display: grid;
+    box-sizing: border-box;
+}
+
+.family-card {
+    background: white;
+    border-radius: 15px;
+    padding: 0;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.family-card:active {
+    transform: scale(0.95);
+}
+
+.family-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.family-avatar {
+    font-size: 200px;
+    user-select: none;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.family-name {
+    display: none;
+}
+
+/* Calling Screen */
+#calling-screen {
+    background: #000;
+    position: relative;
+}
+
+.calling-photo-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.calling-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: zoomPulse 3s ease-in-out infinite;
+    filter: brightness(0.8);
+}
+
+.calling-avatar-fallback {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 300px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.calling-photo-container:not(:has(.calling-photo[src*="uploads"])) .calling-avatar-fallback {
+    display: block;
+}
+
+.calling-photo-container:not(:has(.calling-photo[src*="uploads"])) .calling-photo {
+    display: none;
+}
+
+.calling-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%);
+    z-index: 10;
+}
+
+.pulse-rings {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+}
+
+.pulse-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border: 8px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: pulsateRing 2s ease-out infinite;
+}
+
+.pulse-ring:nth-child(2) {
+    animation-delay: 0.7s;
+}
+
+.pulse-ring:nth-child(3) {
+    animation-delay: 1.4s;
+}
+
+@keyframes pulsateRing {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0;
+    }
+}
+
+@keyframes zoomPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
+
+.calling-text {
+    color: white;
+    font-size: 48px;
+    margin-bottom: 60px;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+    z-index: 20;
+    animation: fadeInOut 2s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.cancel-btn {
+    background: #ff4757;
+    color: white;
+    border: none;
+    padding: 20px 60px;
+    font-size: 28px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+    touch-action: manipulation;
+    z-index: 30;
+    position: relative;
+}
+
+.cancel-btn:active {
+    transform: scale(0.95);
+}
+
+.cancel-btn:hover {
+    background: #ff3838;
+    box-shadow: 0 5px 35px rgba(255, 71, 87, 0.6);
+}
+
+/* Video Call Screen */
+#video-screen {
+    position: relative;
+    background: black;
+}
+
+.remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.local-video {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    border-radius: 15px;
+    object-fit: cover;
+    border: 3px solid white;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.video-controls {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.end-call-btn {
+    background: #ff4757;
+    color: white;
+    border: none;
+    padding: 25px 70px;
+    font-size: 32px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+    touch-action: manipulation;
+}
+
+.end-call-btn:active {
+    transform: scale(0.95);
+}
+
+.end-call-btn:hover {
+    background: #ff3838;
+}
+
+/* Responsive for smaller tablets */
+@media (max-width: 768px) {
+    .family-avatar {
+        font-size: 120px;
+    }
+
+    .calling-avatar-fallback {
+        font-size: 200px;
+    }
+
+    .pulse-rings {
+        width: 200px;
+        height: 200px;
+    }
+
+    .calling-text {
+        font-size: 36px;
+    }
+
+    .cancel-btn {
+        padding: 15px 40px;
+        font-size: 22px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .family-avatar {
+        font-size: 250px;
+    }
+
+    .calling-avatar-fallback {
+        font-size: 400px;
+    }
+
+    .pulse-rings {
+        width: 400px;
+        height: 400px;
+    }
+}

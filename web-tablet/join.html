@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Nora's Call</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .baby-emoji {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .join-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .join-btn:hover {
+            background: #1976D2;
+        }
+
+        .join-btn:active {
+            transform: scale(0.95);
+        }
+
+        .join-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #video-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+        }
+
+        #video-container.active {
+            display: block;
+        }
+
+        .remote-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .local-video {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            height: 112px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 2px solid white;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .end-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .end-btn:active {
+            transform: scale(0.95);
+        }
+
+        .end-btn:hover {
+            background: #ff3838;
+        }
+
+        .status-message {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="join-container">
+        <div class="baby-emoji">👶</div>
+        <h1>Nora wants to video call!</h1>
+        <p>Tap the button below to join the call</p>
+        <button class="join-btn" id="join-btn">Join Call</button>
+        <div class="status-message" id="status-message"></div>
+    </div>
+
+    <div id="video-container">
+        <video id="remote-video" class="remote-video" autoplay playsinline></video>
+        <video id="local-video" class="local-video" autoplay playsinline muted></video>
+        <div class="video-controls">
+            <button class="end-btn" id="end-btn">End Call</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="family.js"></script>
+</body>
+</html>
