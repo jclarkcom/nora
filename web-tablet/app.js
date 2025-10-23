@@ -124,7 +124,16 @@ class VideoCallApp {
     async loadFamilyMembers() {
         try {
             const response = await fetch(`${SERVER_URL}/api/family`);
-            const familyMembers = await response.json();
+            let familyMembers = await response.json();
+
+            // Sort: members with photos first, then emoji avatars
+            familyMembers = familyMembers.sort((a, b) => {
+                const aHasPhoto = a.photoUrl && a.photoUrl.trim() !== '';
+                const bHasPhoto = b.photoUrl && b.photoUrl.trim() !== '';
+                if (aHasPhoto && !bHasPhoto) return -1;
+                if (!aHasPhoto && bHasPhoto) return 1;
+                return 0; // Keep original order for same type
+            });
 
             const grid = document.getElementById('family-grid');
             const layout = this.calculateOptimalLayout(familyMembers.length);
@@ -135,7 +144,8 @@ class VideoCallApp {
             grid.style.gap = '10px';
             grid.style.padding = '10px';
             grid.style.width = '100vw';
-            grid.style.height = '100vh';
+            // Use window.innerHeight for iOS compatibility
+            grid.style.height = `${window.innerHeight}px`;
 
             grid.innerHTML = familyMembers.map(member => `
                 <div class="family-card" data-member-id="${member.id}">
@@ -156,11 +166,12 @@ class VideoCallApp {
                 });
             });
 
-            // Recalculate on window resize
+            // Recalculate on window resize (important for iOS viewport changes)
             window.addEventListener('resize', () => {
                 const newLayout = this.calculateOptimalLayout(familyMembers.length);
                 grid.style.gridTemplateColumns = `repeat(${newLayout.cols}, 1fr)`;
                 grid.style.gridTemplateRows = `repeat(${newLayout.rows}, 1fr)`;
+                grid.style.height = `${window.innerHeight}px`;
             });
         } catch (error) {
             console.error('Failed to load family members:', error);
