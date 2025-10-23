@@ -47,6 +47,62 @@ async function sendEmail({ to, subject, html, text }) {
   }
 }
 
+// URL-safe base64 encoding for room IDs
+function encodeRoomId(roomId) {
+  // Convert to base64 and make URL-safe
+  const base64 = Buffer.from(roomId).toString('base64');
+  return base64
+    .replace(/\+/g, '-')  // Replace + with -
+    .replace(/\//g, '_')  // Replace / with _
+    .replace(/=/g, '');   // Remove padding
+}
+
+function decodeRoomId(encodedRoomId) {
+  try {
+    // Reverse the URL-safe encoding
+    let base64 = encodedRoomId
+      .replace(/-/g, '+')  // Replace - with +
+      .replace(/_/g, '/'); // Replace _ with /
+
+    // Add back padding if needed
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+
+    return Buffer.from(base64, 'base64').toString('utf8');
+  } catch (error) {
+    console.error('Failed to decode room ID:', error);
+    return null;
+  }
+}
+
+// WhatsApp sending helper using Twilio
+async function sendWhatsApp({ to, contentVariables }) {
+  try {
+    // Skip if Twilio credentials are not configured
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN ||
+        process.env.TWILIO_AUTH_TOKEN === '[AuthToken]') {
+      console.log('⚠️  Twilio credentials not configured, skipping WhatsApp notification');
+      return { skipped: true };
+    }
+
+    const twilio = require('twilio');
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+    const message = await client.messages.create({
+      from: process.env.TWILIO_WHATSAPP_FROM,
+      contentSid: process.env.TWILIO_WHATSAPP_CONTENT_SID,
+      contentVariables: JSON.stringify(contentVariables),
+      to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
+    });
+
+    return { sid: message.sid, status: message.status };
+  } catch (error) {
+    console.error('Error sending WhatsApp via Twilio:', error);
+    throw error;
+  }
+}
+
 // Password authentication (SHA-256 hash of "Rahmani2025")
 const PASSWORD_HASH = '8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b'; // Hash of "Rahmani2025"
 
@@ -293,16 +349,17 @@ function createApp() {
     // Construct join URL based on environment
     let joinUrl;
     const productionDomain = process.env.PRODUCTION_DOMAIN || 'nora.jonathanclark.com';
+    const encodedRoomId = encodeRoomId(roomId);
 
     if (process.env.NODE_ENV === 'production' || productionDomain !== 'nora.jonathanclark.com') {
-      // Production: use HTTPS domain
-      joinUrl = `https://${productionDomain}/join.html?room=${roomId}`;
+      // Production: use HTTPS domain with short URL
+      joinUrl = `https://${productionDomain}/join?r=${encodedRoomId}`;
     } else {
       // Development: use localhost for private network IPs since they require HTTPS for camera/mic
       const localIP = global.LOCAL_IP || 'localhost';
       const isPrivateIP = localIP.startsWith('192.168.') || localIP.startsWith('10.10.');
       const hostname = isPrivateIP ? 'localhost' : localIP;
-      joinUrl = `http://${hostname}:4001/join.html?room=${roomId}`;
+      joinUrl = `http://${hostname}:4001/join?r=${encodedRoomId}`;
     }
 
     // Send email notification
@@ -353,7 +410,26 @@ function createApp() {
       }
     }
 
-    // Still log for debugging (stubbed WhatsApp)
+    // Send WhatsApp notification
+    if (member.phone) {
+      try {
+        const result = await sendWhatsApp({
+          to: member.phone,
+          contentVariables: {
+            "1": member.name,
+            "2": "now"
+          }
+        });
+        if (process.env.NODE_ENV !== 'test' && !result.skipped) {
+          console.log(`📱 WhatsApp sent to ${member.name} (${member.phone})`);
+        }
+      } catch (error) {
+        console.error('Failed to send WhatsApp:', error);
+        // Don't fail the request if WhatsApp fails
+      }
+    }
+
+    // Still log for debugging
     if (process.env.NODE_ENV !== 'test') {
       console.log('\n=== 📱 CALL INITIATED ===');
       console.log(`To: ${member.name} (${member.phone})`);
@@ -387,16 +463,17 @@ function createApp() {
     // Construct join URL based on environment
     let joinUrl;
     const productionDomain = process.env.PRODUCTION_DOMAIN || 'nora.jonathanclark.com';
+    const encodedRoomId = encodeRoomId(roomId);
 
     if (process.env.NODE_ENV === 'production' || productionDomain !== 'nora.jonathanclark.com') {
-      // Production: use HTTPS domain
-      joinUrl = `https://${productionDomain}/join.html?room=${roomId}`;
+      // Production: use HTTPS domain with short URL
+      joinUrl = `https://${productionDomain}/join?r=${encodedRoomId}`;
     } else {
       // Development: use localhost for private network IPs since they require HTTPS for camera/mic
       const localIP = global.LOCAL_IP || 'localhost';
       const isPrivateIP = localIP.startsWith('192.168.') || localIP.startsWith('10.10.');
       const hostname = isPrivateIP ? 'localhost' : localIP;
-      joinUrl = `http://${hostname}:4001/join.html?room=${roomId}`;
+      joinUrl = `http://${hostname}:4001/join?r=${encodedRoomId}`;
     }
 
     // Send email invitation
@@ -444,6 +521,25 @@ function createApp() {
       } catch (error) {
         console.error('Failed to send invitation email:', error);
         // Don't fail the request if email fails
+      }
+    }
+
+    // Send WhatsApp invitation
+    if (member.phone) {
+      try {
+        const result = await sendWhatsApp({
+          to: member.phone,
+          contentVariables: {
+            "1": member.name,
+            "2": "now"
+          }
+        });
+        if (process.env.NODE_ENV !== 'test' && !result.skipped) {
+          console.log(`📱 WhatsApp invitation sent to ${member.name} (${member.phone})`);
+        }
+      } catch (error) {
+        console.error('Failed to send WhatsApp invitation:', error);
+        // Don't fail the request if WhatsApp fails
       }
     }
 

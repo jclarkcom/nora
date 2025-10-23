@@ -33,10 +33,41 @@ class FamilyCallApp {
         this.init();
     }
 
+    // Decode URL-safe base64 encoded room ID
+    decodeRoomId(encodedRoomId) {
+        try {
+            // Reverse the URL-safe encoding
+            let base64 = encodedRoomId
+                .replace(/-/g, '+')  // Replace - with +
+                .replace(/_/g, '/'); // Replace _ with /
+
+            // Add back padding if needed
+            while (base64.length % 4) {
+                base64 += '=';
+            }
+
+            // Decode base64
+            const decoded = atob(base64);
+            console.log('Decoded room ID:', decoded);
+            return decoded;
+        } catch (error) {
+            console.error('Failed to decode room ID:', error);
+            return null;
+        }
+    }
+
     async init() {
         // Extract room ID from URL query parameter or path
         const urlParams = new URLSearchParams(window.location.search);
         this.roomId = urlParams.get('room');
+
+        // Check for short URL format (r= parameter with base64 encoded room ID)
+        if (!this.roomId) {
+            const encodedRoomId = urlParams.get('r');
+            if (encodedRoomId) {
+                this.roomId = this.decodeRoomId(encodedRoomId);
+            }
+        }
 
         // Fallback to path-based routing if no query parameter
         if (!this.roomId) {
