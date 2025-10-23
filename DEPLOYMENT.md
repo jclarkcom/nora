@@ -2,6 +2,37 @@
 
 This guide explains how to deploy the Nora video call application to DigitalOcean.
 
+## Quick Deploy (Updates to Existing Server)
+
+The fastest way to deploy code changes to the existing production server:
+
+### Option 1: Python Script (Recommended - Cross-platform)
+```bash
+python deploy.py
+```
+
+### Option 2: Bash Script (Linux/Mac/Git Bash on Windows)
+```bash
+./deploy.sh
+```
+
+### Option 3: Windows Batch Script
+```cmd
+deploy.bat
+```
+
+**What the deployment script does:**
+1. Checks for uncommitted changes and prompts to commit them
+2. Pushes all commits to GitHub
+3. SSH into production server
+4. Pulls latest code
+5. Restarts the nora-server service
+6. Shows server status
+
+---
+
+## Initial Server Setup
+
 ## Prerequisites
 
 1. DigitalOcean account with API token (stored in `../digital_ocean/.env`)
