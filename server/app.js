@@ -8,16 +8,44 @@ const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const nodemailer = require('nodemailer');
+// Email sending helper using Innerscene Secure API
+async function sendEmail({ to, subject, html, text }) {
+  const fetch = (await import('node-fetch')).default;
 
-// Configure email transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+  try {
+    const response = await fetch('https://api.innerscene.com/api/email/send-secure-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': process.env.INTERNAL_API_KEY,
+      },
+      body: JSON.stringify({
+        to,
+        subject,
+        html: html || text,
+        text: text || ''
+      })
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      console.error('Email API error response:', responseText);
+      throw new Error(`Failed to send email: ${response.status} ${response.statusText}`);
+    }
+
+    try {
+      const result = JSON.parse(responseText);
+      return result;
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', responseText.substring(0, 200));
+      throw new Error('Invalid response from email API');
+    }
+  } catch (error) {
+    console.error('Error sending email via Innerscene Secure API:', error);
+    throw error;
   }
-});
+}
 
 // Password authentication (SHA-256 hash of "Rahmani2025")
 const PASSWORD_HASH = '8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b'; // Hash of "Rahmani2025"
@@ -222,17 +250,16 @@ function createApp() {
   // Test email endpoint
   app.post('/api/test-email', async (req, res) => {
     try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
+      await sendEmail({
         to: process.env.EMAIL_USER, // Send to yourself
-        subject: '🎉 Nodemailer Test - Nora App',
+        subject: '🎉 Email Test - Nora App',
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5;">
             <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
               <h1 style="color: #4285f4;">✅ Email Configuration Working!</h1>
-              <p style="font-size: 16px; color: #333;">Your Nodemailer setup is configured correctly.</p>
+              <p style="font-size: 16px; color: #333;">Your email setup is configured correctly using Innerscene API.</p>
               <p style="color: #666; font-size: 14px;">
-                <strong>From:</strong> ${process.env.EMAIL_USER}<br>
+                <strong>To:</strong> ${process.env.EMAIL_USER}<br>
                 <strong>Time:</strong> ${new Date().toLocaleString()}
               </p>
             </div>
@@ -281,10 +308,9 @@ function createApp() {
     // Send email notification
     if (member.email) {
       try {
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
+        await sendEmail({
           to: member.email,
-          subject: '👶 Nora is calling you!',
+          subject: 'Nora is calling you!',
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; background: #ffffff;">
               <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px;">
