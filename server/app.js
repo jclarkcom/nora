@@ -370,6 +370,99 @@ function createApp() {
     });
   });
 
+  // API endpoint to invite member to existing call
+  app.post('/api/call/invite', async (req, res) => {
+    const { familyMemberId, roomId } = req.body;
+    const member = familyMembers.find(m => m.id === familyMemberId);
+
+    if (!member) {
+      return res.status(404).json({ error: 'Family member not found' });
+    }
+
+    // Check if room exists
+    if (!rooms.has(roomId)) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    // Construct join URL based on environment
+    let joinUrl;
+    const productionDomain = process.env.PRODUCTION_DOMAIN || 'nora.jonathanclark.com';
+
+    if (process.env.NODE_ENV === 'production' || productionDomain !== 'nora.jonathanclark.com') {
+      // Production: use HTTPS domain
+      joinUrl = `https://${productionDomain}/join.html?room=${roomId}`;
+    } else {
+      // Development: use localhost for private network IPs since they require HTTPS for camera/mic
+      const localIP = global.LOCAL_IP || 'localhost';
+      const isPrivateIP = localIP.startsWith('192.168.') || localIP.startsWith('10.10.');
+      const hostname = isPrivateIP ? 'localhost' : localIP;
+      joinUrl = `http://${hostname}:4001/join.html?room=${roomId}`;
+    }
+
+    // Send email invitation
+    if (member.email) {
+      try {
+        await sendEmail({
+          to: member.email,
+          subject: 'Join Nora\'s video call!',
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; background: #ffffff;">
+              <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                  <div style="font-size: 80px; line-height: 1;">👶</div>
+                  <h1 style="color: #333; margin: 20px 0 10px 0; font-size: 32px;">You're invited!</h1>
+                  <p style="font-size: 18px; color: #666; margin: 0;">Someone added you to a video call with Nora 💕</p>
+                </div>
+                <div style="text-align: center; margin: 40px 0;">
+                  <a href="${joinUrl}"
+                     style="background: #4CAF50;
+                            color: white;
+                            padding: 18px 50px;
+                            text-decoration: none;
+                            border-radius: 8px;
+                            display: inline-block;
+                            font-size: 20px;
+                            font-weight: bold;">
+                    📹 Join Video Call
+                  </a>
+                </div>
+                <div style="background: #f5f5f5; padding: 20px; margin-top: 30px;">
+                  <p style="color: #666; font-size: 14px; margin: 0 0 10px 0; text-align: center;">
+                    <strong>Quick tip:</strong> Make sure your camera and microphone are enabled!
+                  </p>
+                  <p style="color: #999; font-size: 12px; margin: 0; text-align: center;">
+                    Link: <a href="${joinUrl}" style="color: #4CAF50; word-break: break-all;">${joinUrl}</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+          `
+        });
+        if (process.env.NODE_ENV !== 'test') {
+          console.log(`✉️  Invitation sent to ${member.name} (${member.email})`);
+        }
+      } catch (error) {
+        console.error('Failed to send invitation email:', error);
+        // Don't fail the request if email fails
+      }
+    }
+
+    if (process.env.NODE_ENV !== 'test') {
+      console.log('\n=== 📧 INVITATION SENT ===');
+      console.log(`To: ${member.name} (${member.phone})`);
+      console.log(`Email: ${member.email || 'Not provided'}`);
+      console.log(`Join link: ${joinUrl}`);
+      console.log('========================\n');
+    }
+
+    res.json({
+      success: true,
+      roomId,
+      joinUrl,
+      message: `Invitation sent to ${member.email || 'member'}`
+    });
+  });
+
   // ============ ADMIN ENDPOINTS (IP Restricted) ============
 
   // Get all family members (admin)

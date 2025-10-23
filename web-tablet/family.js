@@ -13,6 +13,8 @@ class FamilyCallApp {
         this.roomId = null;
         this.pollInterval = null;
         this.roomIsActive = false;
+        this.familyMembers = [];
+        this.peersInCall = new Set(); // Track who's in the call
 
         // Zoom and pan state
         this.zoom = 1;
@@ -125,6 +127,30 @@ class FamilyCallApp {
         document.getElementById('end-btn').addEventListener('click', () => {
             this.endCall();
         });
+
+        // Setup invite modal
+        const inviteBtn = document.getElementById('invite-btn');
+        const inviteModal = document.getElementById('invite-modal');
+        const modalClose = document.getElementById('modal-close');
+
+        if (inviteBtn) {
+            inviteBtn.addEventListener('click', () => this.openInviteModal());
+        }
+
+        if (modalClose) {
+            modalClose.addEventListener('click', () => this.closeInviteModal());
+        }
+
+        if (inviteModal) {
+            inviteModal.addEventListener('click', (e) => {
+                if (e.target === inviteModal) {
+                    this.closeInviteModal();
+                }
+            });
+        }
+
+        // Load family members for invite modal
+        this.loadFamilyMembers();
     }
 
     setStatus(message) {
@@ -580,6 +606,84 @@ class FamilyCallApp {
                 console.error('Error polling for rooms:', error);
             }
         }, 2000);
+    }
+
+    async loadFamilyMembers() {
+        try {
+            const response = await fetch(`${SERVER_URL}/api/family`);
+            this.familyMembers = await response.json();
+            console.log('Family members loaded:', this.familyMembers);
+        } catch (error) {
+            console.error('Failed to load family members:', error);
+        }
+    }
+
+    openInviteModal() {
+        const modal = document.getElementById('invite-modal');
+        const grid = document.getElementById('invite-family-grid');
+
+        // Render family members
+        grid.innerHTML = this.familyMembers.map(member => {
+            const isInCall = this.peersInCall.has(member.id);
+            const memberHtml = member.photoUrl
+                ? `<img src="${SERVER_URL}${member.photoUrl}" alt="${member.name}" class="family-photo">`
+                : `<div class="family-avatar">${member.avatar || '👤'}</div>`;
+
+            return `
+                <div class="family-member ${isInCall ? 'disabled' : ''}"
+                     data-member-id="${member.id}"
+                     onclick="${isInCall ? '' : `app.inviteMember('${member.id}')`}">
+                    ${memberHtml}
+                    <div class="family-name">${member.name}</div>
+                    ${isInCall ? '<div class="in-call-badge">In Call</div>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        modal.classList.add('active');
+    }
+
+    closeInviteModal() {
+        const modal = document.getElementById('invite-modal');
+        modal.classList.remove('active');
+    }
+
+    async inviteMember(memberId) {
+        const member = this.familyMembers.find(m => m.id === memberId);
+        if (!member) return;
+
+        console.log('Inviting member:', member);
+
+        try {
+            // Send invitation through server
+            const response = await fetch(`${SERVER_URL}/api/call/invite`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    familyMemberId: memberId,
+                    roomId: this.roomId
+                })
+            });
+
+            const result = await response.json();
+            console.log('Invitation sent:', result);
+
+            // Mark member as invited/in call
+            this.peersInCall.add(memberId);
+
+            // Close modal
+            this.closeInviteModal();
+
+            // Show success message
+            this.setStatus(`Invited ${member.name} to the call!`);
+            setTimeout(() => {
+                this.setStatus('');
+            }, 3000);
+
+        } catch (error) {
+            console.error('Failed to invite member:', error);
+            alert(`Failed to invite ${member.name}. Please try again.`);
+        }
     }
 }
 

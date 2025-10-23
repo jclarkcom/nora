@@ -133,6 +133,144 @@
             color: #666;
             font-size: 14px;
         }
+
+        /* Invite Button */
+        .invite-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-left: 15px;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .invite-btn:active {
+            transform: scale(0.95);
+        }
+
+        .invite-btn:hover {
+            background: #45a049;
+        }
+
+        /* Invite Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 30px;
+            cursor: pointer;
+            color: #999;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .family-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .family-member {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .family-member:hover {
+            background: #e8e8e8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .family-member.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .family-member.disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .family-avatar {
+            font-size: 50px;
+            margin-bottom: 8px;
+        }
+
+        .family-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 8px;
+        }
+
+        .family-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .in-call-badge {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -149,6 +287,19 @@
         <video id="local-video" class="local-video" autoplay playsinline muted></video>
         <div class="video-controls">
             <button class="end-btn" id="end-btn">End Call</button>
+            <button class="invite-btn" id="invite-btn">+ Invite</button>
+        </div>
+    </div>
+
+    <!-- Invite Modal -->
+    <div class="modal-overlay" id="invite-modal">
+        <div class="modal">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <h2>Invite Family Members</h2>
+            <p>Tap anyone to add them to the call</p>
+            <div class="family-grid" id="invite-family-grid">
+                <!-- Family members will be loaded here -->
+            </div>
         </div>
     </div>
 
