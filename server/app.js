@@ -589,20 +589,30 @@ function createApp() {
       }
     });
 
-    // Check if room is active (has a tablet)
+    // Check if room is active (has a tablet or any family members)
     socket.on('check-room', ({ roomId }, callback) => {
       const room = rooms.get(roomId);
-      const hasActiveTablet = room && Array.from(io.sockets.adapter.rooms.get(roomId) || []).some(socketId => {
+      const socketsInRoom = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+
+      const hasActiveTablet = room && socketsInRoom.some(socketId => {
         const socket = io.sockets.sockets.get(socketId);
         return socket && socket.userType === 'tablet';
       });
 
+      const hasFamilyMembers = room && socketsInRoom.some(socketId => {
+        const socket = io.sockets.sockets.get(socketId);
+        return socket && socket.userType === 'family';
+      });
+
+      // Room is active if it has a tablet OR family members already in it
+      const isActive = hasActiveTablet || hasFamilyMembers;
+
       if (callback) {
-        callback({ active: hasActiveTablet, exists: !!room });
+        callback({ active: isActive, exists: !!room });
       }
 
       if (process.env.NODE_ENV !== 'test') {
-        console.log(`🔍 Room check: ${roomId} - active: ${hasActiveTablet}, exists: ${!!room}`);
+        console.log(`🔍 Room check: ${roomId} - active: ${isActive} (tablet: ${hasActiveTablet}, family: ${hasFamilyMembers}), exists: ${!!room}`);
       }
     });
 
