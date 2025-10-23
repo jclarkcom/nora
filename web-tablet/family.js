@@ -1,4 +1,7 @@
-const SERVER_URL = 'http://localhost:4000';
+// Dynamically determine server URL based on current host
+const SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:4000'
+    : window.location.origin;
 const PEER_ID = 'family-' + Math.random().toString(36).substr(2, 9);
 
 class FamilyCallApp {
