@@ -151,7 +151,7 @@ class VideoCallApp {
                 <div class="family-card" data-member-id="${member.id}">
                     <div class="family-avatar">
                         ${member.photoUrl
-                            ? `<img src="${SERVER_URL}${member.photoUrl}" alt="${member.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 15px;">`
+                            ? `<img src="${SERVER_URL}${member.photoUrl}" alt="${member.name}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 15px;">`
                             : member.avatar}
                     </div>
                 </div>
