@@ -632,25 +632,91 @@ function createApp() {
     });
 
     // Forward WebRTC signaling messages
+    // Use star topology: family members only connect to tablet, not to each other
     socket.on('offer', ({ roomId, offer, targetPeerId }) => {
       if (process.env.NODE_ENV !== 'test') {
-        console.log(`📤 Offer sent to room ${roomId}`);
+        console.log(`📤 Offer sent from ${socket.userType}:${socket.peerId}`);
       }
-      socket.to(roomId).emit('offer', { offer, peerId: socket.peerId });
+
+      if (targetPeerId) {
+        // Send to specific peer
+        const targetSocket = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+          .map(socketId => io.sockets.sockets.get(socketId))
+          .find(s => s && s.peerId === targetPeerId);
+
+        if (targetSocket) {
+          targetSocket.emit('offer', { offer, peerId: socket.peerId });
+        }
+      } else {
+        // Send only to tablet (if sender is family) or only to family members (if sender is tablet)
+        const socketsInRoom = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+          .map(socketId => io.sockets.sockets.get(socketId))
+          .filter(s => s && s.id !== socket.id); // Exclude sender
+
+        const targetSockets = socket.userType === 'family'
+          ? socketsInRoom.filter(s => s.userType === 'tablet') // Family → Tablet only
+          : socketsInRoom.filter(s => s.userType === 'family'); // Tablet → Family members
+
+        targetSockets.forEach(targetSocket => {
+          targetSocket.emit('offer', { offer, peerId: socket.peerId });
+        });
+      }
     });
 
     socket.on('answer', ({ roomId, answer, targetPeerId }) => {
       if (process.env.NODE_ENV !== 'test') {
-        console.log(`📥 Answer sent to room ${roomId}`);
+        console.log(`📥 Answer sent from ${socket.userType}:${socket.peerId}`);
       }
-      socket.to(roomId).emit('answer', { answer, peerId: socket.peerId });
+
+      if (targetPeerId) {
+        // Send to specific peer
+        const targetSocket = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+          .map(socketId => io.sockets.sockets.get(socketId))
+          .find(s => s && s.peerId === targetPeerId);
+
+        if (targetSocket) {
+          targetSocket.emit('answer', { answer, peerId: socket.peerId });
+        }
+      } else {
+        // Send only to tablet (if sender is family) or only to family members (if sender is tablet)
+        const socketsInRoom = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+          .map(socketId => io.sockets.sockets.get(socketId))
+          .filter(s => s && s.id !== socket.id); // Exclude sender
+
+        const targetSockets = socket.userType === 'family'
+          ? socketsInRoom.filter(s => s.userType === 'tablet') // Family → Tablet only
+          : socketsInRoom.filter(s => s.userType === 'family'); // Tablet → Family members
+
+        targetSockets.forEach(targetSocket => {
+          targetSocket.emit('answer', { answer, peerId: socket.peerId });
+        });
+      }
     });
 
     socket.on('ice-candidate', ({ roomId, candidate, targetPeerId }) => {
-      if (process.env.NODE_ENV !== 'test') {
-        console.log(`🧊 ICE candidate sent to room ${roomId}`);
+      if (targetPeerId) {
+        // Send to specific peer
+        const targetSocket = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+          .map(socketId => io.sockets.sockets.get(socketId))
+          .find(s => s && s.peerId === targetPeerId);
+
+        if (targetSocket) {
+          targetSocket.emit('ice-candidate', { candidate, peerId: socket.peerId });
+        }
+      } else {
+        // Send only to tablet (if sender is family) or only to family members (if sender is tablet)
+        const socketsInRoom = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+          .map(socketId => io.sockets.sockets.get(socketId))
+          .filter(s => s && s.id !== socket.id); // Exclude sender
+
+        const targetSockets = socket.userType === 'family'
+          ? socketsInRoom.filter(s => s.userType === 'tablet') // Family → Tablet only
+          : socketsInRoom.filter(s => s.userType === 'family'); // Tablet → Family members
+
+        targetSockets.forEach(targetSocket => {
+          targetSocket.emit('ice-candidate', { candidate, peerId: socket.peerId });
+        });
       }
-      socket.to(roomId).emit('ice-candidate', { candidate, peerId: socket.peerId });
     });
 
     // End call
