@@ -1,4 +1,9 @@
-const API_URL = 'http://localhost:4000/api/admin';
+// Dynamically determine server URL based on current host
+const SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:4000'
+    : window.location.origin;
+const API_URL = `${SERVER_URL}/api/admin`;
+
 let editingMemberId = null;
 let cropper = null;
 let croppedBlob = null;
@@ -193,7 +198,7 @@ function displayFamilyMembers(members) {
         <div class="member-card">
             <div class="member-photo">
                 ${member.photoUrl
-                    ? `<img src="http://localhost:4000${member.photoUrl}" alt="${member.name}">`
+                    ? `<img src="${SERVER_URL}${member.photoUrl}" alt="${member.name}">`
                     : `<div class="emoji-avatar">${member.avatar || '👤'}</div>`
                 }
             </div>
@@ -303,7 +308,7 @@ async function editMember(id) {
         document.getElementById('avatar').value = member.avatar || '';
 
         if (member.photoUrl) {
-            photoPreview.src = `http://localhost:4000${member.photoUrl}`;
+            photoPreview.src = `${SERVER_URL}${member.photoUrl}`;
             photoPreviewContainer.style.display = 'block';
         }
 
