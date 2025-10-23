@@ -114,9 +114,15 @@ class FamilyCallApp {
             this.endCall();
         });
 
-        this.socket.on('peer-disconnected', () => {
-            console.log('Peer disconnected');
-            this.endCall();
+        this.socket.on('peer-disconnected', ({ peerId, userType }) => {
+            console.log('Peer disconnected:', peerId, userType);
+            // Only end call if the tablet disconnects, not other family members
+            if (userType === 'tablet') {
+                console.log('Tablet disconnected - ending call');
+                this.endCall();
+            } else {
+                console.log('Family member disconnected - staying in call');
+            }
         });
 
         // Setup event listeners

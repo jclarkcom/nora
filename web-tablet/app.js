@@ -44,6 +44,8 @@ class VideoCallApp {
         // Handle peer joined
         this.socket.on('peer-joined', async ({ peerId, userType }) => {
             console.log('Peer joined:', peerId, userType);
+            // Note: Currently only supports one active connection at a time
+            // Multiple family members can join the room, but only the latest will have video
             if (userType === 'family') {
                 await this.startCall();
             }
@@ -270,7 +272,8 @@ class VideoCallApp {
     }
 
     async startCall() {
-        // Prevent creating multiple peer connections
+        // Note: Currently only supports one peer at a time
+        // TODO: Implement multi-peer support by maintaining Map of connections
         if (this.peerConnection) {
             console.log('Peer connection already exists, skipping');
             return;

@@ -731,10 +731,13 @@ function createApp() {
     // Disconnect
     socket.on('disconnect', () => {
       if (process.env.NODE_ENV !== 'test') {
-        console.log(`📴 Connection closed: ${socket.id}`);
+        console.log(`📴 Connection closed: ${socket.id} (${socket.userType || 'unknown'})`);
       }
       if (socket.roomId) {
-        socket.to(socket.roomId).emit('peer-disconnected', { peerId: socket.peerId });
+        socket.to(socket.roomId).emit('peer-disconnected', {
+          peerId: socket.peerId,
+          userType: socket.userType
+        });
       }
       if (socket.tabletId) {
         tablets.delete(socket.tabletId);
