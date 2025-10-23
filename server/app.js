@@ -77,7 +77,7 @@ function decodeRoomId(encodedRoomId) {
 }
 
 // WhatsApp sending helper using Twilio
-async function sendWhatsApp({ to, contentVariables }) {
+async function sendWhatsApp({ to, body }) {
   try {
     // Skip if Twilio credentials are not configured
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN ||
@@ -91,8 +91,7 @@ async function sendWhatsApp({ to, contentVariables }) {
 
     const message = await client.messages.create({
       from: process.env.TWILIO_WHATSAPP_FROM,
-      contentSid: process.env.TWILIO_WHATSAPP_CONTENT_SID,
-      contentVariables: JSON.stringify(contentVariables),
+      body: body,
       to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
     });
 
@@ -415,10 +414,7 @@ function createApp() {
       try {
         const result = await sendWhatsApp({
           to: member.phone,
-          contentVariables: {
-            "1": member.name,
-            "2": "now"
-          }
+          body: `👶 Nora is calling you!\n\nTap the link to join the video call:\n${joinUrl}`
         });
         if (process.env.NODE_ENV !== 'test' && !result.skipped) {
           console.log(`📱 WhatsApp sent to ${member.name} (${member.phone})`);
@@ -529,10 +525,7 @@ function createApp() {
       try {
         const result = await sendWhatsApp({
           to: member.phone,
-          contentVariables: {
-            "1": member.name,
-            "2": "now"
-          }
+          body: `👶 You're invited to join Nora's video call!\n\nTap the link to join:\n${joinUrl}`
         });
         if (process.env.NODE_ENV !== 'test' && !result.skipped) {
           console.log(`📱 WhatsApp invitation sent to ${member.name} (${member.phone})`);
