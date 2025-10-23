@@ -11,6 +11,7 @@ class FamilyCallApp {
         this.localStream = null;
         this.remoteStream = null;
         this.roomId = null;
+        this.pollInterval = null;
 
         // Zoom and pan state
         this.zoom = 1;
@@ -128,6 +129,12 @@ class FamilyCallApp {
     }
 
     async joinCall() {
+        // Clear polling interval if active
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
+
         const joinBtn = document.getElementById('join-btn');
         joinBtn.disabled = true;
         this.setStatus('Setting up camera and microphone...');
@@ -452,6 +459,12 @@ class FamilyCallApp {
     }
 
     cleanup() {
+        // Clear polling interval if active
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
+
         if (this.peerConnection) {
             this.peerConnection.close();
             this.peerConnection = null;
@@ -504,8 +517,11 @@ class FamilyCallApp {
             document.querySelector('h1').textContent = 'Active Video Calls';
 
             if (rooms.length === 0) {
-                document.querySelector('p').textContent = 'No active calls at the moment. Please wait for Nora to call you!';
+                document.querySelector('p').textContent = 'No active calls at the moment. Waiting for Nora to call...';
                 document.getElementById('join-btn').style.display = 'none';
+
+                // Start polling for new rooms
+                this.startPollingForRooms();
             } else {
                 document.querySelector('p').textContent = 'Choose a call to join:';
                 document.getElementById('join-btn').style.display = 'none';
@@ -537,6 +553,30 @@ class FamilyCallApp {
             document.querySelector('p').textContent = 'Unable to load active calls. Please try refreshing the page.';
             document.getElementById('join-btn').style.display = 'none';
         }
+    }
+
+    startPollingForRooms() {
+        // Clear any existing poll interval
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+        }
+
+        // Poll every 2 seconds for new rooms
+        this.pollInterval = setInterval(async () => {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/rooms`);
+                const rooms = await response.json();
+
+                if (rooms.length > 0) {
+                    // Found a new room! Auto-join the first one
+                    console.log('New room detected, auto-joining:', rooms[0].roomId);
+                    clearInterval(this.pollInterval);
+                    window.location.href = `/join.html?room=${rooms[0].roomId}`;
+                }
+            } catch (error) {
+                console.error('Error polling for rooms:', error);
+            }
+        }, 2000);
     }
 }
 
