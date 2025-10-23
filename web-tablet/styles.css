@@ -257,13 +257,54 @@ body {
     background: black;
 }
 
-.remote-video {
+/* Main video - large, full screen */
+.main-video {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.local-video {
+/* Thumbnails container - positioned at top */
+.video-thumbnails {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+    max-width: 90%;
+    overflow-x: auto;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+}
+
+/* Individual thumbnail video */
+.video-thumbnail {
+    width: 150px;
+    height: 112px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.video-thumbnail:hover {
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.9);
+}
+
+.video-thumbnail.active {
+    border-color: #4CAF50;
+    border-width: 4px;
+}
+
+/* Local video thumbnail */
+.local-video-thumbnail {
     position: absolute;
     bottom: 20px;
     right: 20px;
@@ -273,6 +314,7 @@ body {
     object-fit: cover;
     border: 3px solid white;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    z-index: 10;
 }
 
 .video-controls {
@@ -280,6 +322,34 @@ body {
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    z-index: 10;
+}
+
+.mute-btn {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 25px 40px;
+    font-size: 32px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+    touch-action: manipulation;
+}
+
+.mute-btn.muted {
+    background: #ff4757;
+}
+
+.mute-btn:active {
+    transform: scale(0.95);
+}
+
+.mute-btn:hover {
+    opacity: 0.9;
 }
 
 .end-call-btn {

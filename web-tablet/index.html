@@ -34,9 +34,15 @@
 
         <!-- Video Call Screen -->
         <div id="video-screen" class="screen">
-            <video id="remote-video" class="remote-video" autoplay playsinline></video>
-            <video id="local-video" class="local-video" autoplay playsinline muted></video>
+            <video id="main-video" class="main-video" autoplay playsinline></video>
+            <div id="video-thumbnails" class="video-thumbnails">
+                <!-- Thumbnail videos will be added dynamically -->
+            </div>
+            <video id="local-video" class="local-video-thumbnail" autoplay playsinline muted></video>
             <div class="video-controls">
+                <button class="mute-btn" id="mute-btn" title="Mute/Unmute">
+                    <span id="mute-icon">🎤</span>
+                </button>
                 <button class="end-call-btn" id="end-call-btn">End Call</button>
             </div>
         </div>

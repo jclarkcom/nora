@@ -9,13 +9,16 @@ class FamilyCallApp {
         this.socket = null;
         this.peerConnection = null;
         this.localStream = null;
-        this.remoteStream = null;
+        this.remoteStreams = new Map(); // Map of peerId -> MediaStream
+        this.videoElements = new Map(); // Map of peerId -> video element
+        this.mainVideoPeerId = null; // Which peer is shown in main video
         this.roomId = null;
         this.pollInterval = null;
         this.roomIsActive = false;
         this.familyMembers = [];
         this.peersInCall = new Set(); // Track who's in the call
         this.tabletPeerId = null; // Store tablet's peerId for responses
+        this.isMuted = false;
 
         // Zoom and pan state
         this.zoom = 1;
@@ -134,6 +137,10 @@ class FamilyCallApp {
 
         document.getElementById('end-btn').addEventListener('click', () => {
             this.endCall();
+        });
+
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            this.toggleMute();
         });
 
         // Setup invite modal
@@ -255,42 +262,25 @@ class FamilyCallApp {
 
         // Handle remote stream
         this.peerConnection.ontrack = (event) => {
-            console.log('Received remote track:', event.track.kind, 'id:', event.track.id, 'enabled:', event.track.enabled, 'muted:', event.track.muted, 'readyState:', event.track.readyState);
-            const remoteVideo = document.getElementById('remote-video');
+            console.log('Received remote track from tablet:', event.track.kind);
 
-            if (!this.remoteStream) {
-                this.remoteStream = new MediaStream();
-                // Set srcObject only once when creating the stream
-                remoteVideo.srcObject = this.remoteStream;
-                console.log('Remote stream created and attached to video element');
-
-                // Add event listeners for debugging
-                remoteVideo.onloadedmetadata = () => {
-                    console.log('Remote video metadata loaded - videoWidth:', remoteVideo.videoWidth, 'videoHeight:', remoteVideo.videoHeight);
-                };
-                remoteVideo.onloadeddata = () => {
-                    console.log('Remote video data loaded');
-                };
-                remoteVideo.onplay = () => {
-                    console.log('Remote video started playing');
-                };
-                remoteVideo.onerror = (e) => {
-                    console.error('Remote video error:', e);
-                };
+            // Get or create stream for the tablet
+            if (!this.remoteStreams.has(this.tabletPeerId)) {
+                this.remoteStreams.set(this.tabletPeerId, new MediaStream());
+                console.log('Created new remote stream for tablet');
             }
 
-            this.remoteStream.addTrack(event.track);
-            console.log('Remote stream now has', this.remoteStream.getTracks().length, 'tracks');
+            const stream = this.remoteStreams.get(this.tabletPeerId);
+            stream.addTrack(event.track);
+            console.log('Tablet stream now has', stream.getTracks().length, 'tracks');
 
-            // Try to play video
-            console.log('Attempting to play remote video...');
-            const playPromise = remoteVideo.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    console.log('✅ Remote video play() succeeded');
-                }).catch(e => {
-                    console.error('❌ Remote video play() failed:', e.name, e.message);
-                });
+            // Display tablet video in main video
+            if (!this.mainVideoPeerId) {
+                this.mainVideoPeerId = this.tabletPeerId;
+                const mainVideo = document.getElementById('main-video');
+                mainVideo.srcObject = stream;
+                mainVideo.play().catch(e => console.error('Error playing main video:', e));
+                console.log('Set tablet as main video');
             }
 
             this.showVideo();
@@ -364,8 +354,33 @@ class FamilyCallApp {
         }
     }
 
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+
+        // Mute/unmute all audio tracks in local stream
+        if (this.localStream) {
+            this.localStream.getAudioTracks().forEach(track => {
+                track.enabled = !this.isMuted;
+            });
+        }
+
+        // Update button appearance
+        const muteBtn = document.getElementById('mute-btn');
+        const muteIcon = document.getElementById('mute-icon');
+
+        if (this.isMuted) {
+            muteBtn.classList.add('muted');
+            muteIcon.textContent = '🔇';
+        } else {
+            muteBtn.classList.remove('muted');
+            muteIcon.textContent = '🎤';
+        }
+
+        console.log('Microphone', this.isMuted ? 'muted' : 'unmuted');
+    }
+
     setupZoomControls() {
-        const remoteVideo = document.getElementById('remote-video');
+        const remoteVideo = document.getElementById('main-video');
 
         // Mouse wheel zoom
         remoteVideo.addEventListener('wheel', (e) => {

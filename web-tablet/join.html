@@ -83,13 +83,53 @@
             display: block;
         }
 
-        .remote-video {
+        /* Main video - large, full screen */
+        .main-video {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        .local-video {
+        /* Thumbnails container */
+        .video-thumbnails {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+            max-width: 90%;
+            overflow-x: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+        }
+
+        /* Individual thumbnail video */
+        .video-thumbnail {
+            width: 150px;
+            height: 112px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .video-thumbnail:hover {
+            transform: scale(1.05);
+            border-color: rgba(255, 255, 255, 0.9);
+        }
+
+        .video-thumbnail.active {
+            border-color: #4CAF50;
+            border-width: 4px;
+        }
+
+        .local-video-thumbnail {
             position: absolute;
             bottom: 20px;
             right: 20px;
@@ -99,6 +139,7 @@
             object-fit: cover;
             border: 2px solid white;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            z-index: 10;
         }
 
         .video-controls {
@@ -106,6 +147,33 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .mute-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .mute-btn.muted {
+            background: #ff4757;
+        }
+
+        .mute-btn:active {
+            transform: scale(0.95);
+        }
+
+        .mute-btn:hover {
+            opacity: 0.9;
         }
 
         .end-btn {
@@ -283,9 +351,15 @@
     </div>
 
     <div id="video-container">
-        <video id="remote-video" class="remote-video" autoplay playsinline></video>
-        <video id="local-video" class="local-video" autoplay playsinline muted></video>
+        <video id="main-video" class="main-video" autoplay playsinline></video>
+        <div id="video-thumbnails" class="video-thumbnails">
+            <!-- Thumbnail videos will be added dynamically -->
+        </div>
+        <video id="local-video" class="local-video-thumbnail" autoplay playsinline muted></video>
         <div class="video-controls">
+            <button class="mute-btn" id="mute-btn" title="Mute/Unmute">
+                <span id="mute-icon">🎤</span>
+            </button>
             <button class="end-btn" id="end-btn">End Call</button>
             <button class="invite-btn" id="invite-btn">+ Invite</button>
         </div>

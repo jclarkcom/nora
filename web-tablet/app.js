@@ -8,10 +8,13 @@ class VideoCallApp {
     constructor() {
         this.socket = null;
         this.peerConnections = new Map(); // Map of peerId -> RTCPeerConnection
+        this.remoteStreams = new Map(); // Map of peerId -> MediaStream
+        this.videoElements = new Map(); // Map of peerId -> video element
         this.localStream = null;
-        this.remoteStream = null;
         this.currentRoomId = null;
         this.currentFamilyMember = null;
+        this.mainVideoPeerId = null; // Which peer is shown in main video
+        this.isMuted = false;
 
         this.screens = {
             family: document.getElementById('family-screen'),
@@ -78,6 +81,8 @@ class VideoCallApp {
                 this.peerConnections.delete(peerId);
                 console.log(`Closed connection to ${peerId}. ${this.peerConnections.size} peer(s) remaining`);
             }
+            // Remove video element for this peer
+            this.removePeerVideo(peerId);
             // Only end call if all peers are gone
             if (this.peerConnections.size === 0) {
                 console.log('All peers disconnected - ending call');
@@ -195,6 +200,10 @@ class VideoCallApp {
 
         document.getElementById('end-call-btn').addEventListener('click', () => {
             this.endCall();
+        });
+
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            this.toggleMute();
         });
     }
 
@@ -320,53 +329,20 @@ class VideoCallApp {
 
         // Handle remote stream
         peerConnection.ontrack = (event) => {
-            console.log('Received remote track from', peerId, ':', event.track.kind, 'id:', event.track.id, 'enabled:', event.track.enabled, 'muted:', event.track.muted, 'readyState:', event.track.readyState);
-            const remoteVideo = document.getElementById('remote-video');
+            console.log('Received remote track from', peerId, ':', event.track.kind);
 
-            if (!this.remoteStream) {
-                this.remoteStream = new MediaStream();
-                // Set srcObject only once when creating the stream
-                remoteVideo.srcObject = this.remoteStream;
-                console.log('Remote stream created and attached to video element');
-
-                // Add event listeners for debugging
-                remoteVideo.onloadedmetadata = () => {
-                    console.log('Remote video metadata loaded - videoWidth:', remoteVideo.videoWidth, 'videoHeight:', remoteVideo.videoHeight);
-                };
-                remoteVideo.onloadeddata = () => {
-                    console.log('Remote video data loaded');
-                };
-                remoteVideo.onplay = () => {
-                    console.log('Remote video started playing');
-                };
-                remoteVideo.onerror = (e) => {
-                    console.error('Remote video error:', e);
-                };
+            // Get or create stream for this peer
+            if (!this.remoteStreams.has(peerId)) {
+                this.remoteStreams.set(peerId, new MediaStream());
+                console.log('Created new remote stream for', peerId);
             }
 
-            this.remoteStream.addTrack(event.track);
-            console.log('Remote stream now has', this.remoteStream.getTracks().length, 'tracks');
+            const stream = this.remoteStreams.get(peerId);
+            stream.addTrack(event.track);
+            console.log('Peer', peerId, 'stream now has', stream.getTracks().length, 'tracks');
 
-            // Try to play video
-            console.log('Attempting to play remote video...');
-            console.log('Video element state:', {
-                srcObject: !!remoteVideo.srcObject,
-                videoWidth: remoteVideo.videoWidth,
-                videoHeight: remoteVideo.videoHeight,
-                readyState: remoteVideo.readyState,
-                paused: remoteVideo.paused,
-                currentTime: remoteVideo.currentTime
-            });
-
-            const playPromise = remoteVideo.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    console.log('✅ Remote video play() succeeded');
-                    console.log('After play - dimensions:', remoteVideo.videoWidth, 'x', remoteVideo.videoHeight);
-                }).catch(e => {
-                    console.error('❌ Remote video play() failed:', e.name, e.message);
-                });
-            }
+            // Create or update video element for this peer
+            this.updatePeerVideo(peerId, stream);
 
             this.showScreen('video');
 
@@ -422,8 +398,162 @@ class VideoCallApp {
         }
     }
 
+    updatePeerVideo(peerId, stream) {
+        // If this is the first peer, show in main video
+        if (!this.mainVideoPeerId) {
+            this.mainVideoPeerId = peerId;
+            const mainVideo = document.getElementById('main-video');
+            mainVideo.srcObject = stream;
+            mainVideo.play().catch(e => console.error('Error playing main video:', e));
+            console.log('Set', peerId, 'as main video');
+            return;
+        }
+
+        // Check if this peer already has a thumbnail
+        if (this.videoElements.has(peerId)) {
+            const video = this.videoElements.get(peerId);
+            video.srcObject = stream;
+            return;
+        }
+
+        // Create thumbnail video element
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.playsinline = true;
+        video.srcObject = stream;
+        video.className = 'video-thumbnail';
+        video.dataset.peerId = peerId;
+
+        // Click to switch to main
+        video.addEventListener('click', () => {
+            this.switchMainVideo(peerId);
+        });
+
+        // Add to thumbnails container
+        const thumbnailsContainer = document.getElementById('video-thumbnails');
+        thumbnailsContainer.appendChild(video);
+        this.videoElements.set(peerId, video);
+
+        console.log('Created thumbnail for', peerId);
+    }
+
+    switchMainVideo(peerId) {
+        if (peerId === this.mainVideoPeerId) {
+            return; // Already main video
+        }
+
+        const mainVideo = document.getElementById('main-video');
+        const oldMainPeerId = this.mainVideoPeerId;
+        const oldMainStream = mainVideo.srcObject;
+
+        // Get the stream for the new main video
+        const newMainStream = this.remoteStreams.get(peerId);
+        if (!newMainStream) {
+            console.error('No stream found for', peerId);
+            return;
+        }
+
+        // Swap: new main becomes the main video
+        mainVideo.srcObject = newMainStream;
+        this.mainVideoPeerId = peerId;
+
+        // Old main becomes a thumbnail
+        if (oldMainPeerId && oldMainStream) {
+            this.createThumbnailForPeer(oldMainPeerId, oldMainStream);
+        }
+
+        // Remove the clicked thumbnail
+        const thumbnailVideo = this.videoElements.get(peerId);
+        if (thumbnailVideo) {
+            thumbnailVideo.remove();
+            this.videoElements.delete(peerId);
+        }
+
+        console.log('Switched main video from', oldMainPeerId, 'to', peerId);
+    }
+
+    createThumbnailForPeer(peerId, stream) {
+        // Create thumbnail video element
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.playsinline = true;
+        video.srcObject = stream;
+        video.className = 'video-thumbnail';
+        video.dataset.peerId = peerId;
+
+        // Click to switch to main
+        video.addEventListener('click', () => {
+            this.switchMainVideo(peerId);
+        });
+
+        // Add to thumbnails container
+        const thumbnailsContainer = document.getElementById('video-thumbnails');
+        thumbnailsContainer.appendChild(video);
+        this.videoElements.set(peerId, video);
+    }
+
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+
+        // Mute/unmute all audio tracks in local stream
+        if (this.localStream) {
+            this.localStream.getAudioTracks().forEach(track => {
+                track.enabled = !this.isMuted;
+            });
+        }
+
+        // Update button appearance
+        const muteBtn = document.getElementById('mute-btn');
+        const muteIcon = document.getElementById('mute-icon');
+
+        if (this.isMuted) {
+            muteBtn.classList.add('muted');
+            muteIcon.textContent = '🔇';
+        } else {
+            muteBtn.classList.remove('muted');
+            muteIcon.textContent = '🎤';
+        }
+
+        console.log('Microphone', this.isMuted ? 'muted' : 'unmuted');
+    }
+
+    removePeerVideo(peerId) {
+        // Remove from main video if this peer was main
+        if (this.mainVideoPeerId === peerId) {
+            // Find another peer to show as main
+            const otherPeerId = Array.from(this.remoteStreams.keys()).find(id => id !== peerId);
+            if (otherPeerId) {
+                const mainVideo = document.getElementById('main-video');
+                mainVideo.srcObject = this.remoteStreams.get(otherPeerId);
+                this.mainVideoPeerId = otherPeerId;
+
+                // Remove the thumbnail for the new main video
+                const thumbnailVideo = this.videoElements.get(otherPeerId);
+                if (thumbnailVideo) {
+                    thumbnailVideo.remove();
+                    this.videoElements.delete(otherPeerId);
+                }
+            } else {
+                // No other peers, clear main video
+                const mainVideo = document.getElementById('main-video');
+                mainVideo.srcObject = null;
+                this.mainVideoPeerId = null;
+            }
+        }
+
+        // Remove thumbnail if exists
+        const video = this.videoElements.get(peerId);
+        if (video) {
+            video.remove();
+            this.videoElements.delete(peerId);
+        }
+
+        // Clean up stream
+        this.remoteStreams.delete(peerId);
+    }
+
     setupZoomControls() {
-        const remoteVideo = document.getElementById('remote-video');
+        const remoteVideo = document.getElementById('main-video');
 
         // Mouse wheel zoom
         remoteVideo.addEventListener('wheel', (e) => {
@@ -553,14 +683,33 @@ class VideoCallApp {
         });
         this.peerConnections.clear();
 
+        // Remove all video elements
+        this.videoElements.forEach((video, peerId) => {
+            video.remove();
+        });
+        this.videoElements.clear();
+
+        // Clear all remote streams
+        this.remoteStreams.clear();
+
+        // Clear main video
+        const mainVideo = document.getElementById('main-video');
+        if (mainVideo) {
+            mainVideo.srcObject = null;
+        }
+        this.mainVideoPeerId = null;
+
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => track.stop());
             this.localStream = null;
         }
 
-        if (this.remoteStream) {
-            this.remoteStream = null;
-        }
+        // Reset mute state
+        this.isMuted = false;
+        const muteBtn = document.getElementById('mute-btn');
+        const muteIcon = document.getElementById('mute-icon');
+        if (muteBtn) muteBtn.classList.remove('muted');
+        if (muteIcon) muteIcon.textContent = '🎤';
 
         // Reset zoom state
         this.zoom = 1;
