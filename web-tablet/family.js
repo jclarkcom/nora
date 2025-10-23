@@ -15,6 +15,7 @@ class FamilyCallApp {
         this.roomIsActive = false;
         this.familyMembers = [];
         this.peersInCall = new Set(); // Track who's in the call
+        this.tabletPeerId = null; // Store tablet's peerId for responses
 
         // Zoom and pan state
         this.zoom = 1;
@@ -96,6 +97,7 @@ class FamilyCallApp {
         // Handle WebRTC signaling
         this.socket.on('offer', async ({ offer, peerId }) => {
             console.log('Received offer from', peerId);
+            this.tabletPeerId = peerId; // Store tablet's peerId for responses
             await this.handleOffer(offer);
         });
 
@@ -299,7 +301,8 @@ class FamilyCallApp {
             if (event.candidate) {
                 this.socket.emit('ice-candidate', {
                     roomId: this.roomId,
-                    candidate: event.candidate
+                    candidate: event.candidate,
+                    targetPeerId: this.tabletPeerId
                 });
             }
         };
@@ -341,10 +344,11 @@ class FamilyCallApp {
         const answer = await this.peerConnection.createAnswer();
         await this.peerConnection.setLocalDescription(answer);
 
-        console.log('Sending answer');
+        console.log('Sending answer to', this.tabletPeerId);
         this.socket.emit('answer', {
             roomId: this.roomId,
-            answer: answer
+            answer: answer,
+            targetPeerId: this.tabletPeerId
         });
     }
 

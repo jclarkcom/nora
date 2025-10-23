@@ -7,7 +7,7 @@ const TABLET_ID = 'tablet-' + Math.random().toString(36).substr(2, 9);
 class VideoCallApp {
     constructor() {
         this.socket = null;
-        this.peerConnection = null;
+        this.peerConnections = new Map(); // Map of peerId -> RTCPeerConnection
         this.localStream = null;
         this.remoteStream = null;
         this.currentRoomId = null;
@@ -44,27 +44,25 @@ class VideoCallApp {
         // Handle peer joined
         this.socket.on('peer-joined', async ({ peerId, userType }) => {
             console.log('Peer joined:', peerId, userType);
-            // Note: Currently only supports one active connection at a time
-            // Multiple family members can join the room, but only the latest will have video
             if (userType === 'family') {
-                await this.startCall();
+                await this.startCall(peerId);
             }
         });
 
         // Handle WebRTC signaling
         this.socket.on('offer', async ({ offer, peerId }) => {
             console.log('Received offer from', peerId);
-            await this.handleOffer(offer);
+            await this.handleOffer(offer, peerId);
         });
 
         this.socket.on('answer', async ({ answer, peerId }) => {
             console.log('Received answer from', peerId);
-            await this.handleAnswer(answer);
+            await this.handleAnswer(answer, peerId);
         });
 
         this.socket.on('ice-candidate', async ({ candidate, peerId }) => {
             console.log('Received ICE candidate from', peerId);
-            await this.handleIceCandidate(candidate);
+            await this.handleIceCandidate(candidate, peerId);
         });
 
         this.socket.on('call-ended', () => {
@@ -72,9 +70,19 @@ class VideoCallApp {
             this.endCall();
         });
 
-        this.socket.on('peer-disconnected', () => {
-            console.log('Peer disconnected');
-            this.endCall();
+        this.socket.on('peer-disconnected', ({ peerId, userType }) => {
+            console.log('Peer disconnected:', peerId, userType);
+            // Remove the specific peer connection
+            if (this.peerConnections.has(peerId)) {
+                this.peerConnections.get(peerId).close();
+                this.peerConnections.delete(peerId);
+                console.log(`Closed connection to ${peerId}. ${this.peerConnections.size} peer(s) remaining`);
+            }
+            // Only end call if all peers are gone
+            if (this.peerConnections.size === 0) {
+                console.log('All peers disconnected - ending call');
+                this.endCall();
+            }
         });
 
         // Load family members
@@ -271,32 +279,33 @@ class VideoCallApp {
         }
     }
 
-    async startCall() {
-        // Note: Currently only supports one peer at a time
-        // TODO: Implement multi-peer support by maintaining Map of connections
-        if (this.peerConnection) {
-            console.log('Peer connection already exists, skipping');
+    async startCall(peerId) {
+        if (this.peerConnections.has(peerId)) {
+            console.log('Peer connection already exists for', peerId);
             return;
         }
 
-        console.log('Creating peer connection and offer');
+        console.log('Creating peer connection and offer for', peerId);
 
         // Create peer connection
-        this.peerConnection = new RTCPeerConnection({
+        const peerConnection = new RTCPeerConnection({
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' }
             ]
         });
 
+        // Store in map
+        this.peerConnections.set(peerId, peerConnection);
+
         // Add local stream tracks
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => {
-                this.peerConnection.addTrack(track, this.localStream);
+                peerConnection.addTrack(track, this.localStream);
             });
 
             // Set encoding parameters for better quality
-            this.peerConnection.getSenders().forEach(sender => {
+            peerConnection.getSenders().forEach(sender => {
                 if (sender.track && sender.track.kind === 'video') {
                     const parameters = sender.getParameters();
                     if (!parameters.encodings || parameters.encodings.length === 0) {
@@ -310,8 +319,8 @@ class VideoCallApp {
         }
 
         // Handle remote stream
-        this.peerConnection.ontrack = (event) => {
-            console.log('Received remote track:', event.track.kind, 'id:', event.track.id, 'enabled:', event.track.enabled, 'muted:', event.track.muted, 'readyState:', event.track.readyState);
+        peerConnection.ontrack = (event) => {
+            console.log('Received remote track from', peerId, ':', event.track.kind, 'id:', event.track.id, 'enabled:', event.track.enabled, 'muted:', event.track.muted, 'readyState:', event.track.readyState);
             const remoteVideo = document.getElementById('remote-video');
 
             if (!this.remoteStream) {
@@ -369,37 +378,47 @@ class VideoCallApp {
         };
 
         // Handle ICE candidates
-        this.peerConnection.onicecandidate = (event) => {
+        peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
                 this.socket.emit('ice-candidate', {
                     roomId: this.currentRoomId,
-                    candidate: event.candidate
+                    candidate: event.candidate,
+                    targetPeerId: peerId
                 });
             }
         };
 
         // Create and send offer
-        const offer = await this.peerConnection.createOffer();
-        await this.peerConnection.setLocalDescription(offer);
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
 
         this.socket.emit('offer', {
             roomId: this.currentRoomId,
-            offer: offer
+            offer: offer,
+            targetPeerId: peerId
         });
     }
 
-    async handleOffer(offer) {
+    async handleOffer(offer, peerId) {
         // Tablet should never receive offers - it's always the initiator
         console.warn('Tablet received unexpected offer - ignoring');
     }
 
-    async handleAnswer(answer) {
-        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    async handleAnswer(answer, peerId) {
+        const peerConnection = this.peerConnections.get(peerId);
+        if (peerConnection) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        } else {
+            console.error('No peer connection found for', peerId);
+        }
     }
 
-    async handleIceCandidate(candidate) {
-        if (this.peerConnection) {
-            await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    async handleIceCandidate(candidate, peerId) {
+        const peerConnection = this.peerConnections.get(peerId);
+        if (peerConnection) {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } else {
+            console.error('No peer connection found for', peerId);
         }
     }
 
@@ -527,10 +546,12 @@ class VideoCallApp {
     }
 
     cleanup() {
-        if (this.peerConnection) {
-            this.peerConnection.close();
-            this.peerConnection = null;
-        }
+        // Close all peer connections
+        this.peerConnections.forEach((peerConnection, peerId) => {
+            console.log('Closing peer connection to', peerId);
+            peerConnection.close();
+        });
+        this.peerConnections.clear();
 
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => track.stop());

@@ -40,7 +40,16 @@
       "Bash(do sleep 10)",
       "Bash(break)",
       "Bash(done)",
-      "Bash(gh repo edit:*)"
+      "Bash(gh repo edit:*)",
+      "Bash(scp:*)",
+      "Read(//c/gen2/innerscene-api/**)",
+      "Bash(cat:*)",
+      "WebSearch",
+      "Bash(node test-twilio.js:*)",
+      "Bash(node test-email.js:*)",
+      "Bash(taskkill //F //PID 81528)",
+      "Bash(chmod:*)",
+      "Bash(python deploy.py:*)"
     ],
     "deny": [],
     "ask": []
