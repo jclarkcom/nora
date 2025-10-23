@@ -12,6 +12,7 @@ class FamilyCallApp {
         this.remoteStream = null;
         this.roomId = null;
         this.pollInterval = null;
+        this.roomIsActive = false;
 
         // Zoom and pan state
         this.zoom = 1;
@@ -70,9 +71,22 @@ class FamilyCallApp {
                 console.log('Room check response:', response);
                 if (!response.active) {
                     console.log('Room is not active, showing active rooms instead');
+                    this.roomIsActive = false;
                     this.showActiveRooms();
                 } else {
+                    this.roomIsActive = true;
                     this.setStatus('Tap "Join Call" to connect with Nora! 👶');
+
+                    // Auto-click join button after a short delay (still requires user to grant camera permission)
+                    setTimeout(() => {
+                        const joinBtn = document.getElementById('join-btn');
+                        if (joinBtn && !joinBtn.disabled && this.roomIsActive) {
+                            // Update text to be more action-oriented
+                            document.querySelector('h1').textContent = 'Connecting to Nora...';
+                            document.querySelector('p').textContent = 'Please allow camera and microphone access when prompted';
+                            joinBtn.click();
+                        }
+                    }, 1000);
                 }
             });
         });
@@ -111,17 +125,6 @@ class FamilyCallApp {
         document.getElementById('end-btn').addEventListener('click', () => {
             this.endCall();
         });
-
-        // Auto-click join button after a short delay (still requires user to grant camera permission)
-        setTimeout(() => {
-            const joinBtn = document.getElementById('join-btn');
-            if (joinBtn && !joinBtn.disabled) {
-                // Update text to be more action-oriented
-                document.querySelector('h1').textContent = 'Connecting to Nora...';
-                document.querySelector('p').textContent = 'Please allow camera and microphone access when prompted';
-                joinBtn.click();
-            }
-        }, 1000);
     }
 
     setStatus(message) {
