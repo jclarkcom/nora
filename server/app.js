@@ -176,16 +176,11 @@ function createApp() {
     res.json({ success: true });
   });
 
-  // Serve login page (public)
-  const serverDir = __dirname;
-  app.use(express.static(serverDir, {
-    index: false,
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('login.html')) {
-        res.setHeader('Cache-Control', 'no-cache');
-      }
-    }
-  }));
+  // Serve login page (public) - specific route to avoid exposing server files
+  app.get('/login.html', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(__dirname, 'login.html'));
+  });
 
   // Serve uploaded images
   app.use('/uploads', express.static(uploadsDir));
