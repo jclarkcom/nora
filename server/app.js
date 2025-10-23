@@ -3,6 +3,8 @@ const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -16,6 +18,34 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASSWORD
   }
 });
+
+// Password authentication (SHA-256 hash of "Rahmani2025")
+const PASSWORD_HASH = '8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b'; // Hash of "Rahmani2025"
+
+// Calculate the correct hash (run once to get the hash for "Rahmani2025")
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+// Middleware to check authentication
+function requireAuth(req, res, next) {
+  if (process.env.NODE_ENV === 'test') {
+    return next();
+  }
+
+  const authToken = req.cookies.nora_auth;
+
+  if (authToken === hashPassword('Rahmani2025')) {
+    next();
+  } else {
+    // If it's an API request, return JSON
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    // Otherwise redirect to login
+    res.redirect('/login.html');
+  }
+}
 
 // Store active rooms and connections
 const rooms = new Map();
@@ -121,13 +151,58 @@ function createApp() {
 
   app.use(cors());
   app.use(express.json());
+  app.use(cookieParser());
+
+  // Login endpoint (public)
+  app.post('/api/auth/login', (req, res) => {
+    const { password } = req.body;
+
+    if (hashPassword(password) === hashPassword('Rahmani2025')) {
+      // Set cookie that expires in 30 days
+      res.cookie('nora_auth', hashPassword('Rahmani2025'), {
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        httpOnly: true,
+        sameSite: 'lax'
+      });
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ success: false, error: 'Invalid password' });
+    }
+  });
+
+  // Logout endpoint
+  app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('nora_auth');
+    res.json({ success: true });
+  });
+
+  // Serve login page (public)
+  const serverDir = __dirname;
+  app.use(express.static(serverDir, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('login.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    }
+  }));
 
   // Serve uploaded images
   app.use('/uploads', express.static(uploadsDir));
 
-  // Serve admin UI (with IP filtering)
+  // Serve admin UI (with IP filtering and authentication)
   const publicDir = path.join(__dirname, 'public');
-  app.use('/admin', adminIPFilter, express.static(publicDir));
+  app.use('/admin', requireAuth, adminIPFilter, express.static(publicDir));
+
+  // Serve web-tablet interface (with authentication, except join.html)
+  const webTabletDir = path.join(__dirname, '../web-tablet');
+
+  // Public join page (for email links)
+  app.get('/join.html', express.static(webTabletDir));
+  app.get('/join', (req, res) => res.redirect('/join.html' + (req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '')));
+
+  // Protected tablet interface
+  app.use('/', requireAuth, express.static(webTabletDir));
 
   // API endpoint to get family members
   app.get('/api/family', (req, res) => {

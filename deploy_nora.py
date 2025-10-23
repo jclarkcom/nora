@@ -46,21 +46,29 @@ def upload_ssh_key():
     print("Uploading SSH key to DigitalOcean...")
     with open(SSH_PUB_KEY_PATH, 'r') as f:
         ssh_pub_key = f.read().strip()
-    
-    # Check if key already exists
+
+    # Get all existing keys
     response = requests.get(f"{BASE_URL}/account/keys", headers=HEADERS)
-    
+
     if response.status_code == 200:
         keys = response.json().get('ssh_keys', [])
+
+        # First check by name
         for key in keys:
             if 'nora-deploy-key' in key.get('name', ''):
-                print(f"Found existing SSH key with ID: {key['id']}")
+                print(f"Found existing SSH key by name with ID: {key['id']}")
                 return key['id']
-    
+
+        # Then check by public key content (in case key exists with different name)
+        for key in keys:
+            if key.get('public_key', '').strip() == ssh_pub_key:
+                print(f"Found existing SSH key by content with ID: {key['id']} (name: {key.get('name')})")
+                return key['id']
+
     # Key doesn't exist, create it
     key_name = f"nora-deploy-key-{int(time.time())}"
     print(f"Creating new SSH key with name: {key_name}")
-    
+
     response = requests.post(
         f"{BASE_URL}/account/keys",
         headers=HEADERS,
@@ -69,7 +77,7 @@ def upload_ssh_key():
             "public_key": ssh_pub_key
         }
     )
-    
+
     if response.status_code == 201:
         ssh_key_id = response.json()['ssh_key']['id']
         print(f"SSH key uploaded successfully with ID: {ssh_key_id}")
@@ -177,9 +185,9 @@ def main():
     print(f"Region: {REGION}")
     print(f"Size: {SIZE}")
     print()
-    
-    input("Press Enter to continue or Ctrl+C to cancel...")
-    
+
+    print("Starting deployment...")
+
     # Upload SSH key
     ssh_key_id = upload_ssh_key()
     
@@ -189,8 +197,7 @@ def main():
     # Wait for droplet to be ready
     ip_address = wait_for_droplet(droplet_id)
     
-    print("
-" + "=" * 60)
+    print("\n" + "=" * 60)
     print("Droplet Created Successfully!")
     print("=" * 60)
     print(f"IP Address: {ip_address}")

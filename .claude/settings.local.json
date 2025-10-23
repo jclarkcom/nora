@@ -28,7 +28,19 @@
       "Read(//c/Users/jonat/Jonathan Clark Dropbox/Jonathan Clark/code/**)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(gh auth:*)",
+      "Bash(git push:*)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(python deploy_nora.py:*)",
+      "Bash(ssh:*)",
+      "Bash(for:*)",
+      "Bash(do sleep 10)",
+      "Bash(break)",
+      "Bash(done)",
+      "Bash(gh repo edit:*)"
     ],
     "deny": [],
     "ask": []
