@@ -192,6 +192,10 @@ function createApp() {
 
   // Serve admin UI (with IP filtering and authentication)
   const publicDir = path.join(__dirname, 'public');
+
+  // Redirect /admin and /admin/ to /admin/admin.html
+  app.get('/admin', requireAuth, adminIPFilter, (req, res) => res.redirect('/admin/admin.html'));
+
   app.use('/admin', requireAuth, adminIPFilter, express.static(publicDir));
 
   // Serve web-tablet interface (with authentication, except join.html)
@@ -264,11 +268,20 @@ function createApp() {
       createdAt: Date.now()
     });
 
-    // Use localhost for private network IPs since they require HTTPS for camera/mic
-    const localIP = global.LOCAL_IP || 'localhost';
-    const isPrivateIP = localIP.startsWith('192.168.') || localIP.startsWith('10.10.');
-    const hostname = isPrivateIP ? 'localhost' : localIP;
-    const joinUrl = `http://${hostname}:4001/join.html?room=${roomId}`;
+    // Construct join URL based on environment
+    let joinUrl;
+    const productionDomain = process.env.PRODUCTION_DOMAIN || 'nora.jonathanclark.com';
+
+    if (process.env.NODE_ENV === 'production' || productionDomain !== 'nora.jonathanclark.com') {
+      // Production: use HTTPS domain
+      joinUrl = `https://${productionDomain}/join.html?room=${roomId}`;
+    } else {
+      // Development: use localhost for private network IPs since they require HTTPS for camera/mic
+      const localIP = global.LOCAL_IP || 'localhost';
+      const isPrivateIP = localIP.startsWith('192.168.') || localIP.startsWith('10.10.');
+      const hostname = isPrivateIP ? 'localhost' : localIP;
+      joinUrl = `http://${hostname}:4001/join.html?room=${roomId}`;
+    }
 
     // Send email notification
     if (member.email) {
